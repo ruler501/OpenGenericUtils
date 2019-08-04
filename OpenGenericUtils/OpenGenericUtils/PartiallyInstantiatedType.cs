@@ -1,54 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using Instantiations = System.Collections.Generic.IReadOnlyDictionary<System.Type, OpenGenericUtils.IType>;
 
 namespace OpenGenericUtils
 {
     public class PartiallyInstantiatedType : IType {
 
+        public PartiallyInstantiatedType(Type                               generic,
+                                         Instantiations                     instantiatedParameters,
+                                         IReadOnlyDictionary<Type, IType[]> constraints) {
+            this.OpenGeneric            = generic;
+            this.InstantiatedParameters = instantiatedParameters;
+            this.Constraints            = constraints;
+        }
+
         public Type OpenGeneric { get; }
-        public Type[] Parameters => this.OpenGeneric.GetGenericArguments();
+        public Type[] ParameterTypes => this.OpenGeneric.GetGenericArguments();
         public IReadOnlyDictionary<Type, IType> InstantiatedParameters { get; }
         public IReadOnlyDictionary<Type, IType[]> Constraints { get; }
-        public IType[] Parents {
-            get {
-                throw new NotImplementedException();
-            }
-        }
+        public bool Constructible { get; }
+        public IEnumerable<IType[]> AvailableConstructorParamLists { get; }
+        public IType[] Implements { get; }
+        public IReadOnlyDictionary<Type, IType> Instantiations { get; }
 
-        public PartiallyInstantiatedType(Type                         generic,
-                                         IReadOnlyDictionary<Type, IType> instantiatedParameters,
-                                         IReadOnlyDictionary<Type, IType[]> constraints) {
-            this.OpenGeneric = generic;
-            this.InstantiatedParameters = instantiatedParameters;
-            this.Constraints = constraints;
-        }
-
-        public static Type[] FindRemainingOpen(Type generic,
-                                               KeyValuePair<Type, Type[]>[]
-                                                   parametersWithConstraints) => null;
-        public IType Simplify() => throw new NotImplementedException();
-
-        public IType Simplify(IReadOnlyDictionary<Type, IType> fixedParameters) {
-            // Populate with current instantiated Params and fixedParameters. If any don't unify return null.
-            IDictionary<Type, IType> newInstantiatedParameters = new Dictionary<Type, IType>();
-
-            // Apply all instantiated Params to Constraints, Propagating results out to other Params
-            // If one simplifies to false return null
-            // If one simplifies to a single type remove it from Constraints and add it to the list of instantiated.
-
-            PartiallyInstantiatedType newType = new PartiallyInstantiatedType(this.OpenGeneric,
-                                                                              this.InstantiatedParameters,
-                                                                              this.Constraints);
-            return newType.Simplify();
-        }
-        public ConstructorInfo TryGetConstructor(params Type[] parameters) => throw new NotImplementedException();
-        public bool IsConstructibleFrom(params Type[] parameters) => throw new NotImplementedException();
-        public ConstructorInfo GetConstructor(params Type[] parameters) => throw new NotImplementedException();
-        public bool IsAssignableFrom(IType other) => throw new NotImplementedException();
-        public bool IsConstructibleFrom(params IType[] parameters) => throw new NotImplementedException();
+        public bool ConstructibleWith(IType[] parameters) => throw new NotImplementedException();
+        public ConstructedObject ConstructWith(params object[] parameters)
+            => this.ConstructWithTyped(parameters.Select(p => new KeyValuePair<IType, object>((p?.GetType() ?? typeof(object)).ToIType(), p))
+                                                 .ToArray());
+        public ConstructedObject ConstructWithTyped(params KeyValuePair<IType, object>[] parameters) => throw new NotImplementedException();
         public ConstructorInfo GetConstructor(params IType[] parameters) => throw new NotImplementedException();
-        public IDictionary<Type, IType> UnifyWith(IType other) => throw new NotImplementedException();
-        public bool IsEquivalentTo(IType other) => throw new NotImplementedException();
+        public UnifyResult InstantiateWith(Instantiations instantiations) => throw new NotImplementedException();
+
+        public UnifyBinaryResult UnifyAsAssignableFrom(IType other, Instantiations instantiations) => throw new NotImplementedException();
+        public UnifyBinaryResult UnifyAsAssignableFrom(IType other)
+            => this.UnifyAsAssignableFrom(other, this.Instantiations);
+        public UnifyBinaryResult UnifyWith(IType other)
+            => this.UnifyWith(other, this.Instantiations);
+        public UnifyBinaryResult UnifyWith(IType other, Instantiations instantiations) => throw new NotImplementedException();
     }
 }

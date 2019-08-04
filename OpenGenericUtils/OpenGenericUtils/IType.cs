@@ -2,22 +2,18 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace OpenGenericUtils
-{
-    public interface IType {
+namespace OpenGenericUtils {
+    public interface IType : IGeneric {
 
-        IType Simplify();
-        IType Simplify(IReadOnlyDictionary<Type, IType> fixedParameters);
+        bool Constructible { get; }
+        IEnumerable<IType[]> AvailableConstructorParamLists { get; }
 
-        bool IsConstructibleFrom(params IType[] parameters);
+        bool ConstructibleWith(IType[] parameters);
+        ConstructedObject ConstructWith(params object[] parameters);
+        ConstructedObject ConstructWithTyped(params KeyValuePair<IType, object>[] parameters);
         ConstructorInfo GetConstructor(params IType[] parameters);
 
-        IDictionary<Type, IType> UnifyWith(IType other);
-
-        bool IsAssignableFrom(IType other);
-        bool IsEquivalentTo(IType other);
-
-        IType[] Parents { get; }
+        IType[] Implements { get; }
 
     }
 }
