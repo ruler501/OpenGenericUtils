@@ -2,42 +2,47 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Instantiations = System.Collections.Generic.IReadOnlyDictionary<System.Type, OpenGenericUtils.IType>;
+using Context = System.Collections.Generic.IReadOnlyDictionary<System.Type, OpenGenericUtils.IType>;
 
-namespace OpenGenericUtils
-{
-    public class PartiallyInstantiatedType : IType {
+namespace OpenGenericUtils {
+    public sealed class PartiallyInstantiatedType : TypeBase {
 
-        public PartiallyInstantiatedType(Type                               generic,
-                                         Instantiations                     instantiatedParameters,
-                                         IReadOnlyDictionary<Type, IType[]> constraints) {
-            this.OpenGeneric            = generic;
-            this.InstantiatedParameters = instantiatedParameters;
-            this.Constraints            = constraints;
+        public PartiallyInstantiatedType(Type generic, Context context)
+                : base(context) {
+            this.OpenGeneric = generic;
+            IList<IType> actualParameterTypes = new List<IType>(this.GenericsParameterTypes.Length);
+            foreach (Type parameterType in this.GenericsParameterTypes) {
+                if (context.ContainsKey(parameterType)) {
+                    actualParameterTypes.Add(context[parameterType]);
+                } else {
+                    ConstrainedParameterType parameter = new ConstrainedParameterType(parameterType, context, parameterType.GetITypeConstraints());
+                    // TODO: Propagate constraints
+                    actualParameterTypes.Add(parameter);
+                }
+            }
+            this.ActualParameterTypes = actualParameterTypes.ToArray();
         }
 
         public Type OpenGeneric { get; }
-        public Type[] ParameterTypes => this.OpenGeneric.GetGenericArguments();
-        public IReadOnlyDictionary<Type, IType> InstantiatedParameters { get; }
-        public IReadOnlyDictionary<Type, IType[]> Constraints { get; }
-        public bool Constructible { get; }
-        public IEnumerable<IType[]> AvailableConstructorParamLists { get; }
-        public IType[] Implements { get; }
-        public IReadOnlyDictionary<Type, IType> Instantiations { get; }
+        public Type[] GenericsParameterTypes => this.OpenGeneric.GetGenericArguments();
+        public IType[] ActualParameterTypes { get; }
+        public override bool Constructible => throw new NotImplementedException();
+        public override IEnumerable<IType[]> AvailableConstructorParamLists => throw new NotImplementedException();
+        public override IEnumerable<IType> Implements => throw new NotImplementedException();
 
-        public bool ConstructibleWith(IType[] parameters) => throw new NotImplementedException();
-        public ConstructedObject ConstructWith(params object[] parameters)
-            => this.ConstructWithTyped(parameters.Select(p => new KeyValuePair<IType, object>((p?.GetType() ?? typeof(object)).ToIType(), p))
-                                                 .ToArray());
-        public ConstructedObject ConstructWithTyped(params KeyValuePair<IType, object>[] parameters) => throw new NotImplementedException();
-        public ConstructorInfo GetConstructor(params IType[] parameters) => throw new NotImplementedException();
-        public UnifyResult InstantiateWith(Instantiations instantiations) => throw new NotImplementedException();
+        public override bool Class => throw new NotImplementedException();
+        public override bool Struct => throw new NotImplementedException();
 
-        public UnifyBinaryResult UnifyAsAssignableFrom(IType other, Instantiations instantiations) => throw new NotImplementedException();
-        public UnifyBinaryResult UnifyAsAssignableFrom(IType other)
-            => this.UnifyAsAssignableFrom(other, this.Instantiations);
-        public UnifyBinaryResult UnifyWith(IType other)
-            => this.UnifyWith(other, this.Instantiations);
-        public UnifyBinaryResult UnifyWith(IType other, Instantiations instantiations) => throw new NotImplementedException();
+        public override bool ConstructibleWith(params IType[] parameters) => throw new NotImplementedException();
+        public override UnifiedObject ConstructWithTyped(params KeyValuePair<IType, object>[] parameters) => throw new NotImplementedException();
+        public override UnifiedConstructorInfo GetConstructor(params IType[] parameters) => throw new NotImplementedException();
+        public override IGeneric InstantiateWithAdditional(Context context)
+            => new PartiallyInstantiatedType(this.OpenGeneric, this.Context.AddNewKeysFrom(context));
+        public override UnifyBinaryResult UnifyAsAssignableFrom(IGeneric other) => throw new NotImplementedException();
+        public override UnifyBinaryResult UnifyAsEqual(IGeneric other) => throw new NotImplementedException();
+        // TODO: Do we need to propogate down into the Constraints?
+        public override IGeneric WithDefaultContext() => new PartiallyInstantiatedType(this.OpenGeneric, new Dictionary<Type, IType>());
+
+        public override bool IsInstance(object obj) => throw new NotImplementedException();
     }
 }

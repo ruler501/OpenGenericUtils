@@ -6,61 +6,63 @@ using System.Reflection;
 using Instantiations = System.Collections.Generic.IReadOnlyDictionary<System.Type, OpenGenericUtils.IType>;
 
 namespace OpenGenericUtils {
-    public class ClosedType : IType {
+    public sealed class ClosedType : TypeBase {
 
-        public ClosedType(Type type, Instantiations instantiations) { this.Type = type; }
+        public ClosedType(Type type) : base(new Dictionary<Type, IType>()) {
+            this.Type = type;
+        }
 
         public Type Type { get; }
 
-        public IType[] Implements {
+        public override IEnumerable<IType> Implements {
             get {
-                Type[] interfaces = this.Type.GetInterfaces();
+                foreach(Type interface_ in this.Type.GetInterfaces()) {
+                    yield return interface_.ToIType();
+                }
                 Type parentType = this.Type.BaseType;
-                if (!(parentType is null)) {
-                    return interfaces.Select(i => (IType)(ClosedType)i).ToArray();
-                } else {
-                    return interfaces.Append(parentType).Select(i => (IType)(ClosedType)i)
-                                     .ToArray();
+                while(!(parentType is null)) {
+                    yield return parentType.ToIType();
+                    parentType = parentType.BaseType;
                 }
             }
         }
 
-        public bool Constructible => throw new NotImplementedException();
-        public IEnumerable<IType[]> AvailableConstructorParamLists
-            => this.Type.GetConstructors()
-                        .Select(ci => ci.GetParameters()
-                                        .Select(pi => pi.ParameterType.ToIType())
-                                        .ToArray());
-        public Instantiations Instantiations { get; }
+        public override bool Constructible => throw new NotImplementedException();
 
-        public UnifyResult InstantiateWith(Instantiations instantiations) => throw new NotImplementedException();
+        public override IEnumerable<IType[]> AvailableConstructorParamLists { get; }
+        public override bool Class => throw new NotImplementedException();
+        public override bool Struct => throw  new NotImplementedException();
 
-        public UnifyBinaryResult UnifyWith(IType other) => this.UnifyWith(other, this.Instantiations);
-        public UnifyBinaryResult UnifyWith(IType other, Instantiations instantiations) => throw new NotImplementedException();
-
-        public UnifyBinaryResult UnifyAsAssignableFrom(IType other, Instantiations instantiations) {
-            if (other is ClosedType simpleOther) {
-                if (simpleOther.Type.IsAssignableFrom(this.Type)) {
-                    return new UnifyBinaryResult(this, simpleOther, this.Instantiations.Update(other.Instantiations));
-                } else {
-                    throw new UnificationException();
-                }
+        public override UnifyBinaryResult UnifyAsEqual(IGeneric other) {
+            if (other is ClosedType simpleOther && simpleOther.Type == this.Type) {
+                return new UnifyBinaryResult(this, simpleOther);
+            } else {
+                throw new NotImplementedException();
+            }
+        }
+        public override UnifyBinaryResult UnifyAsAssignableTo(IType other) {
+            if ((other is ClosedType simpleOther && simpleOther.Type.IsAssignableFrom(this.Type))
+                 || (other is NullType && this.Class)) {
+                return new UnifyBinaryResult(this, other);
             } else {
                 throw new NotImplementedException();
             }
         }
 
-        public UnifyBinaryResult UnifyAsAssignableFrom(IType other) => this.UnifyAsAssignableFrom(other, this.Instantiations);
-
-        public bool ConstructibleWith(IType[] parameters) => throw new NotImplementedException();
-        public ConstructedObject ConstructWith(params object[] parameters)
-            => this.ConstructWithTyped(parameters.Select(p => new KeyValuePair<IType, object>((p?.GetType() ?? typeof(object)).ToIType(), p))
+        public override bool ConstructibleWith(IType[] parameters) => throw new NotImplementedException();
+        public override UnifiedObject ConstructWith(params object[] parameters)
+            => this.ConstructWithTyped(parameters.Select(p => new KeyValuePair<IType, object>(p?.GetType().ToIType() ?? new NullType(), p))
                                                  .ToArray());
-        public ConstructedObject ConstructWithTyped(params KeyValuePair<IType, object>[] parameters) => throw new NotImplementedException();
-        public ConstructorInfo GetConstructor(params IType[] parameters) => throw new NotImplementedException();
+        public override UnifiedObject ConstructWithTyped(params KeyValuePair<IType, object>[] parameters) => throw new NotImplementedException();
+        public override UnifiedConstructorInfo GetConstructor(params IType[] parameters) => throw new NotImplementedException();
+        public override UnifyBinaryResult UnifyAsAssignableFrom(IGeneric other) => throw new NotImplementedException();
+        public override IGeneric InstantiateWithAdditional(Instantiations context) => throw new NotImplementedException();
+        public override IGeneric WithDefaultContext() => throw new NotImplementedException();
 
         public static implicit operator Type(ClosedType type) => type.Type;
-        public static implicit operator ClosedType(Type type) => new ClosedType(type, new Dictionary<Type, IType>());
+        public static implicit operator ClosedType(Type type) => new ClosedType(type);
+
+        public override bool IsInstance(object obj) => throw new NotImplementedException();
 
     }
 }

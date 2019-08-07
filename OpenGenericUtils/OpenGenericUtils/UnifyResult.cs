@@ -1,28 +1,14 @@
-﻿using Instantiations = System.Collections.Generic.IReadOnlyDictionary<System.Type, OpenGenericUtils.IType>;
-
-namespace OpenGenericUtils
+﻿namespace OpenGenericUtils
 {
+    public class UnifyBinaryResult {
 
-    public class UnifyResult {
-
-        public UnifyResult(IType thisType, Instantiations instantiations) {
-            this.ThisType = thisType;
-            this.Instantiations = instantiations;
+        public UnifyBinaryResult(IType type, IGeneric generic) {
+            this.Type = type;
+            this.Generic = generic;
         }
 
-        IType          ThisType       { get; }
-        Instantiations Instantiations { get; }
-
-    }
-
-    public class UnifyBinaryResult : UnifyResult {
-
-        public UnifyBinaryResult(IType thisType, IType otherType, Instantiations instantiations) :
-                base(thisType, instantiations) {
-            this.OtherType = otherType;
-        }
-
-        IType OtherType { get; }
+        public IType Type { get; }
+        public IGeneric Generic { get; }
 
     }
 }
